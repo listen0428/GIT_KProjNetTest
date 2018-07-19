@@ -1,0 +1,1 @@
+pyuic5 test_prj1.ui -o ui_BurnControl.py
