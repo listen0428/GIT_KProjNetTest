@@ -46,6 +46,9 @@ class mywindow(QtWidgets.QWidget,Ui_Test_Prj1):
         self.tB_log_2.document().setMaximumBlockCount(1000)#设置文本最大长度
         self.cB_txmac.addItem('ALL')
         self.cB_ip_2.addItem('ALL')
+        self.lE_avenum.setText(str(0))
+        self.lE_avetime.setText(str(0.000))
+        self.lE_avetime_2.setText(str(0.000))
         self.initDataBase()
 
     def initDataBase(self):
@@ -162,14 +165,16 @@ class mywindow(QtWidgets.QWidget,Ui_Test_Prj1):
             UDPServer.upd_en = True
             self.udp_server_recv = UDPServer.UDPServer()
 
-            self.t = threading.Thread(target=self.udp_server_recv.receive,
+            t1 = threading.Thread(target=self.udp_server_recv.receive,
                                       args=(self.addr_recv,self.pB_udpbegin,self.cB_ip,self.cB_ip_2,self.tB_log,self.tB_log_2,self.cB_txmac,))
-            self.t.setDaemon(True)
-            self.t.start()
+            t1.setDaemon(True)
+            t1.start()
             self.cB_ip.setEnabled(False)
             self.pB_udpbegin.setText("udp关闭")
 
-
+            t2 = threading.Thread(target=self.queneDataReceive,args=())#加逗号有问题，感觉每个地方的用法都不一样
+            t2.setDaemon(True)
+            t2.start()
 
     def udpSet(self):
         ip = str(self.cB_ip_2.currentText())
@@ -206,6 +211,25 @@ class mywindow(QtWidgets.QWidget,Ui_Test_Prj1):
         self.tE_log.clear()
         self.tB_log.clear()
         self.tB_log_2.clear()
+
+    def uwbAveTime(self):
+        if UDPServer.ControlOrder[0]:
+            UDPServer.ControlOrder[0]=0
+            self.pB_avetime.setText('开始统计')
+        else:
+            UDPServer.ControlOrder[0]=1
+            self.pB_avetime.setText('结束统计')
+
+    def queneDataReceive(self):
+        while True:
+            self.pB_avetime.setEnabled(False) if self.cB_txmac.currentText()=='ALL' else self.pB_avetime.setEnabled(True)
+            if not UDPServer.DataTransmitQuene.empty():
+                data_list = UDPServer.DataTransmitQuene.get()
+                if data_list[0]==0:
+                    self.lE_avenum.setText(str(data_list[1]))
+                    self.lE_avetime.setText(str(round(data_list[2],3)))
+                    self.lE_avetime_2.setText(str(round(data_list[3]**0.5,3)))
+                logger.info(data_list)
 
     def recvLog(self):
         server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)

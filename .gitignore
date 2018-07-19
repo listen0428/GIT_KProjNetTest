@@ -5,6 +5,7 @@
 *.log.2
 *.log.3
 *.log.4
+address_data
 dist
 build
 __pycache__

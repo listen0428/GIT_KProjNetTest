@@ -8,9 +8,11 @@ from Logger import logger
 import PySqlite
 import time,threading
 from queue import Queue,Full
-
+import DataAnalysis
 SendQuene = Queue(1000)
+DataTransmitQuene = Queue(1000)
 LoraDevice = ['Lora接收','Lora发送','PS发送','other']
+ControlOrder = [0]
 class TestLossPackage():
     def __init__(self,init_cnt):
         self.init_cnt = init_cnt
@@ -204,6 +206,10 @@ class UDPServer():
         self.cB_txmac_currentText = 0
         self.test_loss_package = {}
         self.tag_divece = {}
+        self.average_data = {}
+        self.uwb_average_time = {}
+        self.ave_time ={}
+        self.var_time ={}
     def receive(self,addr,pB_udpbegin,cB_ip,cB_ip_2,tB_log,tB_log_2,cB_txmac):
         logger.info(addr)
         server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -365,11 +371,12 @@ class UDPServer():
                     }
                     # if AddrR=="01AA2145CCF0CB1F":#分析定位包时间稳定性
                     # self.testTimeStability('R-'+AddrR+',T-'+AddrT,data_dict['SN'],float(Tr)*self.DWT_TIME_UNITS)
-                # logger.debug(data_dict)
+
             # logger.debug(self.pack_ble_dict)
                 if cB_txmac.findText(AddrT)==-1:
                     cB_txmac.addItem(AddrT)
                 if cB_txmac.currentText()=='ALL' or cB_txmac.currentText() == AddrT:
+                    logger.debug(data_dict)
                     if self.cB_txmac_currentText!=cB_txmac.currentText():
                         self.TimeRx_dict = {}
                     self.cB_txmac_currentText = cB_txmac.currentText()
@@ -386,12 +393,30 @@ class UDPServer():
                 delta_time = (self.TimeRx_dict[flag][1][2]-self.TimeRx_dict[flag][1][1])/(self.TimeRx_dict[flag][0][2]-self.TimeRx_dict[flag][0][1])
                 delta_time= delta_time+self.CLOCK_OVERFLOW if delta_time<-10 else delta_time
                 error_time = (delta_time-self.delta_time_last[flag])*self.Velocity_Light
+                if abs(delta_time)>2 or abs(error_time)>10000:
+                    self.delta_time_last[flag] = delta_time
+                    return
+
                 logger.info([flag,'时间s:',rx_time,'时间差s:',delta_time,'距离精度m:',round(error_time,2)])
                 content = ''.join([flag,',距离精度m: ',str(round(error_time,2))])
                 SendQuene.put_nowait([0,content])
                 # tB_log.append(content)
                 self.delta_time_last[flag] = delta_time
 
+                # self.average_data[flag].averageData(error_time,1)
+                if delta_time<1 and ControlOrder[0]==1:
+                    self.ave_time[flag] = self.average_data[flag].averageData(error_time,1)
+                    self.var_time[flag] = self.average_data[flag].varianceData(error_time,1)
+                    logger.info([flag,'平均精度：',self.ave_time[flag],'，标准差：',self.var_time[flag],error_time])
+                try:
+                    if self.uwb_average_time[flag]==1 and ControlOrder[0]==0:
+                        logger.info([0,self.ave_time[flag],self.var_time[flag]])
+                        DataTransmitQuene.put_nowait([0,self.ave_time[flag][0],self.ave_time[flag][1],self.var_time[flag][1]])
+                        self.ave_time[flag] = self.average_data[flag].averageData(0,0)
+                        self.var_time[flag] = self.average_data[flag].varianceData(0,0)
+                except:
+                    self.uwb_average_time[flag] = ControlOrder[0]
+                self.uwb_average_time[flag] = ControlOrder[0]
                 # 丢包概率
                 # total_package = sn - self.TimeRx_dict[flag][0][4]
                 # self.TimeRx_dict[flag][0][3] = self.TimeRx_dict[flag][0][3] + self.TimeRx_dict[flag][0][2] - self.TimeRx_dict[flag][0][1] - 1
@@ -414,6 +439,7 @@ class UDPServer():
             self.TimeRx_dict[flag].append([1,2,3])
             logger.debug(self.TimeRx_dict)
             self.test_loss_package[flag] = TestLossPackage(sn)
+            self.average_data[flag] = DataAnalysis.AverageData()
 
     def quenePrint(self,tB_log,tB_log_2):
         while True:
