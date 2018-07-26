@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1223</width>
+    <width>1259</width>
     <height>663</height>
    </rect>
   </property>
@@ -69,7 +69,7 @@
     <rect>
      <x>10</x>
      <y>260</y>
-     <width>181</width>
+     <width>191</width>
      <height>131</height>
     </rect>
    </property>
@@ -94,7 +94,7 @@
      <rect>
       <x>50</x>
       <y>60</y>
-      <width>121</width>
+      <width>131</width>
       <height>20</height>
      </rect>
     </property>
@@ -107,7 +107,7 @@
      <rect>
       <x>50</x>
       <y>20</y>
-      <width>121</width>
+      <width>131</width>
       <height>22</height>
      </rect>
     </property>
@@ -168,12 +168,12 @@
      <rect>
       <x>50</x>
       <y>20</y>
-      <width>121</width>
+      <width>131</width>
       <height>22</height>
      </rect>
     </property>
     <property name="editable">
-     <bool>false</bool>
+     <bool>true</bool>
     </property>
     <property name="currentText">
      <string/>
@@ -190,7 +190,7 @@
      <rect>
       <x>50</x>
       <y>60</y>
-      <width>121</width>
+      <width>131</width>
       <height>20</height>
      </rect>
     </property>
@@ -259,9 +259,9 @@
    <widget class="QComboBox" name="cB_order">
     <property name="geometry">
      <rect>
-      <x>10</x>
-      <y>210</y>
-      <width>101</width>
+      <x>20</x>
+      <y>180</y>
+      <width>151</width>
       <height>22</height>
      </rect>
     </property>
@@ -278,10 +278,10 @@
    <widget class="QTextEdit" name="tE_send">
     <property name="geometry">
      <rect>
-      <x>10</x>
+      <x>20</x>
       <y>120</y>
       <width>151</width>
-      <height>81</height>
+      <height>51</height>
      </rect>
     </property>
     <property name="autoFormatting">
@@ -291,9 +291,9 @@
    <widget class="QPushButton" name="pB_send">
     <property name="geometry">
      <rect>
-      <x>120</x>
+      <x>90</x>
       <y>210</y>
-      <width>61</width>
+      <width>71</width>
       <height>23</height>
      </rect>
     </property>
@@ -399,7 +399,7 @@
     <rect>
      <x>610</x>
      <y>20</y>
-     <width>601</width>
+     <width>641</width>
      <height>631</height>
     </rect>
    </property>

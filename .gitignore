@@ -5,6 +5,8 @@
 *.log.2
 *.log.3
 *.log.4
+*.log.5
+*.db
 address_data
 dist
 build

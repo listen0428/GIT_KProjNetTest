@@ -32,9 +32,12 @@ class TestLossPackage():
                 self.same_package_flag = 0
                 self.loss_cnt = cnt - self.last_cnt - 1 + self.loss_cnt
 
-
         total_package = cnt -  self.init_cnt
-        loss_package_probability = round(self.loss_cnt*100/total_package,2)
+        try:
+            loss_package_probability = round(self.loss_cnt*100/total_package,2)
+        except:
+            loss_package_probability = -1
+            logger.warning([LoraDevice[flag],'计数器未累加。'])
         # logger.info(loss_package_probability)
         data_list = [total_package,self.loss_cnt,loss_package_probability,self.last_cnt,self.same_package_flag]
         self.last_cnt = cnt
@@ -175,7 +178,7 @@ class TagDevice():
                 total_package = loss_pack[0] if i==1 else total_package
             except:
                 self.test_loss_package[gw_mac+str(i)] = TestLossPackage(cnt_list[i])
-        content = ''.join([gw_mac,',总包数:',str(total_package),'\n','丢包率%:']) + content + '\n'
+        content = ''.join([gw_mac,',发送总包数:',str(total_package),'\n','丢包率%:']) + content + '\n'
         SendQuene.put_nowait([1,content])
         
 
@@ -210,6 +213,7 @@ class UDPServer():
         self.uwb_average_time = {}
         self.ave_time ={}
         self.var_time ={}
+        self.ip_mac = {}
     def receive(self,addr,pB_udpbegin,cB_ip,cB_ip_2,tB_log,tB_log_2,cB_txmac):
         logger.info(addr)
         server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -240,7 +244,7 @@ class UDPServer():
                 else:
 
                     if data[0]==1:#表示接收到uwb数据
-                        self.uwbReceiver(data,cB_txmac)
+                        self.uwbReceiver(data,cB_txmac,udp_addr)
                     elif data[0]==2:#表示接收到ble数据
                         logger.debug('ble')
                         self.bleReceiver(data,cB_txmac)
@@ -293,7 +297,7 @@ class UDPServer():
         if udp_addr[0] not in Tx_IP_Addr:#当接收到来自新ip的数据时，更新数据库和客户端ip列表
             Tx_IP_Addr.append(udp_addr[0])
             cB_ip_2.addItem(udp_addr[0])
-            db = PySqlite.DataBase('address_data')
+            db = PySqlite.DataBase('address_data.db')
             db.addRow(udp_addr[0],udp_addr[1],'ADDRESS')
             logger.info('addItem news ip')
             db.conn.close()
@@ -327,7 +331,7 @@ class UDPServer():
             content = ''.join(['cnt:',str(unpack_data[1]),',ble包错误!'])
             SendQuene.put_nowait([1,content])
 
-    def uwbReceiver(self,data,cB_txmac):
+    def uwbReceiver(self,data,cB_txmac,udp_addr):
         self.pack_ble_dict['Header']=str(data[0])
         self.pack_ble_dict['PackNum']=data[1]
         self.pack_ble_dict['FPGACnt']=data[2]*256+data[3]
@@ -343,6 +347,11 @@ class UDPServer():
                 AddrT = ''.join(["%02X"%(char) for char in uwb_data[24:32]])
                 AddrR = ''.join(["%02X"%(char) for char in uwb_data[32:40]])
 
+                if udp_addr[0] not in self.ip_mac:
+                    self.ip_mac[udp_addr[0]]=AddrR
+                    logger.warning([udp_addr[0],AddrR])
+                    content = ''.join([udp_addr[0],' : ',AddrR])
+                    SendQuene.put_nowait([0,content])
                 # AddrR = ''
                 # for char in uwb_data[32:40]:
                 #     AddrR = AddrR + "%02X"%(char)
@@ -355,7 +364,8 @@ class UDPServer():
                         'TimeRx': float(Tr)*self.DWT_TIME_UNITS,
                         'AddrT':AddrT,
                         'AddrA':AddrR,
-                        'Time':int(time.time()*1000)
+                        'Time':int(time.time()*1000),
+                        'IP':udp_addr
                     }
                     # logger.debug(data_dict)
                     # self.testTimeStability('R-'+AddrR+',T-'+AddrT,data_dict['SN'],float(Tr)*self.DWT_TIME_UNITS)
@@ -380,7 +390,7 @@ class UDPServer():
                     if self.cB_txmac_currentText!=cB_txmac.currentText():
                         self.TimeRx_dict = {}
                     self.cB_txmac_currentText = cB_txmac.currentText()
-                    self.testTimeStability(AddrT,data_dict['SN'],float(Tr)*self.DWT_TIME_UNITS)
+                    self.testTimeStability(AddrT+'-'+AddrR,data_dict['SN'],float(Tr)*self.DWT_TIME_UNITS)
 
     def testTimeStability(self,flag,sn,rx_time):#分析包时间稳定性,计算导致的距离误差
         # logger.debug(self.TimeRx_dict)
@@ -390,6 +400,7 @@ class UDPServer():
                 self.TimeRx_dict[flag][1] = self.TimeRx_dict[flag][1][1:]+[rx_time]
                 # logger.debug(self.TimeRx_dict)
                 #距离精度
+                logger.warning([self.TimeRx_dict[flag][0][2],self.TimeRx_dict[flag][0][1]])
                 delta_time = (self.TimeRx_dict[flag][1][2]-self.TimeRx_dict[flag][1][1])/(self.TimeRx_dict[flag][0][2]-self.TimeRx_dict[flag][0][1])
                 delta_time= delta_time+self.CLOCK_OVERFLOW if delta_time<-10 else delta_time
                 error_time = (delta_time-self.delta_time_last[flag])*self.Velocity_Light
@@ -480,7 +491,7 @@ class UDPServer():
         #     logger.info(data[0])
         #     # if data[0] == 0x0b:
         #     if data[0] == 0x0b:
-        #         db = PySqlite.DataBase('address_data')
+        #         db = PySqlite.DataBase('address_data.db')
         #         db.addRow(string,'STOCK_IN')
         #         if not db.addRow(string,'STOCK'):
         #             logger.info('重复ble标签：'+string)
@@ -492,7 +503,7 @@ class UDPServer():
         #         tB_log.append(content)
         #     # elif data[0] == 0x0d:
         #     elif data[0] == 0x0d:
-        #         db = PySqlite.DataBase('address_data')
+        #         db = PySqlite.DataBase('address_data.db')
         #         db.addRow(string,'STOCK_OUT')
         #         db.deleteRow('STOCK','BLE',string)
         #         logger.info(string+',STOCK_OUT')

@@ -20,13 +20,19 @@ class mywindow(QtWidgets.QWidget,Ui_Test_Prj1):
         self.upd_log_en = False
         self.client_address = ('127.0.0.1', 1111)
         # self.order_list = ['ble入库','ble出库','ble烧写','ble复位','uwb烧写','uwb复位']
-        self.order_dict = {'ble入库':'0AFF',
-                           'ble出库':'0A55',
-                           'ble烧写':'FA02',
-                           'ble复位':'FAF2',
-                           'uwb烧写':'FA01',
-                           'uwb复位为主':'FAF1A0',
-                           'uwb复位为从':'FAF1A1'}
+        self.order_dict = {
+            '升级':'FA01',
+            '查询':'FA02',
+            '停止iot业务':'FA08',
+            '开启iot业务':'FA09',
+            'ble烧写':'FA02',
+            'ble复位':'FAF2',
+            'zynq复位':'FAF3',
+            'uwb烧写':'FA01',
+            'uwb复位为主':'FAF1A0',
+            'uwb复位为从':'FAF1A1',
+            'ble入库':'0AFF',
+            'ble出库':'0A55'}
         self.order_dict_exchange = {v:k for k,v in self.order_dict.items()}#key和value交换
 
     def initSetup(self):
@@ -52,7 +58,7 @@ class mywindow(QtWidgets.QWidget,Ui_Test_Prj1):
         self.initDataBase()
 
     def initDataBase(self):
-        db = PySqlite.DataBase('address_data')
+        db = PySqlite.DataBase('address_data.db')
         db.createTable()#数据库里面没有ip，所以不用读
         # try:
         #     UDPServer.Tx_IP_Addr = db.readTable('ADDRESS')
@@ -199,7 +205,7 @@ class mywindow(QtWidgets.QWidget,Ui_Test_Prj1):
         self.tB_log.append(context)
 
         if self.client_address[0] not in UDPServer.Tx_IP_Addr:#当前只考虑IP，不考虑port
-            db = PySqlite.DataBase('address_data')
+            db = PySqlite.DataBase('address_data.db')
             if db.addRow(self.client_address[0],self.client_address[1],'ADDRESS'):
                 logger.info('addItem')
                 self.cB_ip_2.addItem(self.client_address[0])

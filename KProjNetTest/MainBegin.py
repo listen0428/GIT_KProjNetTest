@@ -11,7 +11,7 @@ from InterfaceControl import mywindow
 # pyinstaller -F -w MainBegin.py
 
 if __name__ == '__main__':
-    logger.warning('Hello,l')
+    logger.warning('Hello,ls')
     app = QtWidgets.QApplication(sys.argv)
     window = mywindow()
     window.setupUi(window)
