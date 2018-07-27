@@ -10,11 +10,14 @@ class DataBase():
         self.cur = self.conn.cursor()
 
     def createTable(self):
-        try:
-            self.deleteTable('ADDRESS')
-        except:
-            pass
-        else:
+        # try:
+        #     self.deleteTable('ADDRESS')
+        #     logger.warning('nihao add')
+        # except:
+        #     pass
+        #     logger.warning('nihao pass')
+        # else:
+        #     logger.warning('nihao')
             self.cur.execute('''CREATE TABLE IF NOT EXISTS ADDRESS
                             (ID INTEGER PRIMARY KEY AUTOINCREMENT,
                             IP CHAR(20) NOT NULL ,

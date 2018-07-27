@@ -9,7 +9,7 @@ import PySqlite
 import time,threading
 from queue import Queue,Full
 import DataAnalysis
-SendQuene = Queue(1000)
+SendQuene = Queue(10000)
 DataTransmitQuene = Queue(1000)
 LoraDevice = ['Lora接收','Lora发送','PS发送','other']
 ControlOrder = [0]
@@ -76,10 +76,10 @@ class TagDevice():
         self.time = self.pack_lora_dict['Date'] + ' ' + self.pack_lora_dict['Time']
         # self.pack_lora_dict['Time_s']=str(Time_s//3600+8)+':'+str(Time_s%3600//60)+':'+str(Time_s%60)
         # self.pack_lora_dict['Time_ms']=unpack_data[2]
-        if len(data)%10==8:
-            self.pack_lora_dict['LoraCnt']=struct.unpack(">3H",data[-6:])
-        elif len(data)%10==9:
-            self.pack_lora_dict['LoraCnt']=struct.unpack(">3HB",data[-7:])
+        # if len(data)%10==8:
+        #     self.pack_lora_dict['LoraCnt']=struct.unpack(">3H",data[-6:])
+        # elif len(data)%10==9:
+        self.pack_lora_dict['LoraCnt']=struct.unpack(">3HB",data[-7:])
         if unpack_data[0] < self.tag_uwb_cnt:
             logger.error(self.pack_lora_dict)
             content = ''.join([self.time+' : '+self.pack_lora_dict['GWMAC'],',cnt:',str(unpack_data[0]),',LoraCnt:',str(self.pack_lora_dict['LoraCnt']),',lora包错误!'])
@@ -214,6 +214,7 @@ class UDPServer():
         self.ave_time ={}
         self.var_time ={}
         self.ip_mac = {}
+        self.thread_lock = threading.Lock()
     def receive(self,addr,pB_udpbegin,cB_ip,cB_ip_2,tB_log,tB_log_2,cB_txmac):
         logger.info(addr)
         server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -295,12 +296,14 @@ class UDPServer():
 
         global Tx_IP_Addr
         if udp_addr[0] not in Tx_IP_Addr:#当接收到来自新ip的数据时，更新数据库和客户端ip列表
-            Tx_IP_Addr.append(udp_addr[0])
-            cB_ip_2.addItem(udp_addr[0])
-            db = PySqlite.DataBase('address_data.db')
-            db.addRow(udp_addr[0],udp_addr[1],'ADDRESS')
-            logger.info('addItem news ip')
-            db.conn.close()
+            if self.thread_lock.acquire():
+                Tx_IP_Addr.append(udp_addr[0])
+                cB_ip_2.addItem(udp_addr[0])
+                db = PySqlite.DataBase('address_data.db')
+                db.addRow(udp_addr[0],udp_addr[1],'ADDRESS')
+                logger.info('addItem news ip')
+                db.conn.close()
+                self.thread_lock.release()
 
     def bleReceiver(self,data,cB_txmac):
         unpack_data = struct.unpack(">BBHI",data[0:8])
@@ -455,7 +458,7 @@ class UDPServer():
     def quenePrint(self,tB_log,tB_log_2):
         while True:
             if not SendQuene.empty():
-                time.sleep(0.005)
+                time.sleep(0.001)
                 content = SendQuene.get()
                 if content[0]:
                     tB_log.append(content[1])

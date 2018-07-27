@@ -83,8 +83,11 @@ class Ui_Test_Prj1(object):
         self.tE_send.setAutoFormatting(QtWidgets.QTextEdit.AutoNone)
         self.tE_send.setObjectName("tE_send")
         self.pB_send = QtWidgets.QPushButton(self.gB_udpclient)
-        self.pB_send.setGeometry(QtCore.QRect(90, 210, 71, 23))
+        self.pB_send.setGeometry(QtCore.QRect(100, 210, 71, 23))
         self.pB_send.setObjectName("pB_send")
+        self.chB_masterip = QtWidgets.QCheckBox(self.gB_udpclient)
+        self.chB_masterip.setGeometry(QtCore.QRect(20, 210, 91, 19))
+        self.chB_masterip.setObjectName("chB_masterip")
         self.lE_incnt = QtWidgets.QLineEdit(Test_Prj1)
         self.lE_incnt.setGeometry(QtCore.QRect(320, 510, 42, 20))
         self.lE_incnt.setObjectName("lE_incnt")
@@ -187,6 +190,7 @@ class Ui_Test_Prj1(object):
         self.pB_send.clicked.connect(Test_Prj1.udpSend)
         self.cB_order.activated['QString'].connect(Test_Prj1.udpOrder)
         self.pB_avetime.clicked.connect(Test_Prj1.uwbAveTime)
+        self.chB_masterip.toggled['bool'].connect(Test_Prj1.masterIP)
         QtCore.QMetaObject.connectSlotsByName(Test_Prj1)
 
     def retranslateUi(self, Test_Prj1):
@@ -206,6 +210,7 @@ class Ui_Test_Prj1(object):
         self.rB_byte.setText(_translate("Test_Prj1", "16进制"))
         self.rB_string.setText(_translate("Test_Prj1", "字符串"))
         self.pB_send.setText(_translate("Test_Prj1", "发送"))
+        self.chB_masterip.setText(_translate("Test_Prj1", "主基站"))
         self.lE_incnt.setText(_translate("Test_Prj1", "9999"))
         self.tL_incnt.setText(_translate("Test_Prj1", "入库计数器："))
         self.tL_outcnt.setText(_translate("Test_Prj1", "出库计数器："))

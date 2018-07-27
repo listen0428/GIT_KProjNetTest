@@ -4,7 +4,7 @@ block_cipher = None
 
 
 a = Analysis(['MainBegin.py'],
-             pathex=['F:\\Python\\GIT_KProjNetTest\\KProjNetTest'],
+             pathex=['F:\\Project\\K_Project\\Software\\Python\\GIT_KProjNetTest\\KProjNetTest'],
              binaries=[],
              datas=[],
              hiddenimports=[],

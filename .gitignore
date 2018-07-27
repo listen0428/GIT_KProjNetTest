@@ -7,6 +7,7 @@
 *.log.4
 *.log.5
 *.db
+*.spec
 address_data
 dist
 build

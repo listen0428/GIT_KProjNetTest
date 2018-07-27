@@ -92,6 +92,11 @@ class mywindow(QtWidgets.QWidget,Ui_Test_Prj1):
         logger.info(self.order_dict[send_content])
 
     def udpSend(self):
+        # 对于运行在在主线程内运行时间较长的程序应开辟新的线程执行，保证不影响主线程的使用
+        t = threading.Thread(target=self.udpSendThread,args=())
+        t.setDaemon(True)
+        t.start()
+    def udpSendThread(self):
         data = self.tE_send.toPlainText()
         try:
             order = self.order_dict_exchange[data]
@@ -108,15 +113,18 @@ class mywindow(QtWidgets.QWidget,Ui_Test_Prj1):
                 self.lE_incnt.setText(str(UDPServer.output_cnt))
             self.tB_log.append(context)
         server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        client_address = self.client_address
-        # if self.chB_allip.isChecked():
+        client_port = int(self.lE_port_2.text())
+        if self.chB_masterip.isChecked():
+            send_ip_list = ConfigFile.ParaInit['master_ip']
+        else:
+            send_ip_list = UDPServer.Tx_IP_Addr
         if self.cB_ip_2.currentText()=='ALL':
-            if UDPServer.Tx_IP_Addr==[]:
+            if send_ip_list==[]:
                 logger.info('发送IP列表为空！')
                 self.tB_log.append('发送IP列表为空！')
-            for current_ip in UDPServer.Tx_IP_Addr:
-                client_address = (current_ip,self.client_address[1])
-                self.tB_log.append(str(client_address))
+            for current_ip in send_ip_list:
+                client_address = (current_ip,client_port)
+                self.tB_log.append(current_ip)
                 logger.info([client_address,data])
                 if self.rB_string.isChecked():#字符串格式发送
                     server.sendto(data.encode(),client_address)
@@ -136,7 +144,7 @@ class mywindow(QtWidgets.QWidget,Ui_Test_Prj1):
                     server.sendto(data_pack,client_address)
                 time.sleep(2)
         else:
-            client_address = (self.cB_ip_2.currentText(),self.client_address[1])
+            client_address = (self.cB_ip_2.currentText(),client_port)
             logger.info([client_address,data])
             self.tB_log.append(str(client_address))
             if self.rB_string.isChecked():#字符串格式发送
@@ -272,6 +280,16 @@ class mywindow(QtWidgets.QWidget,Ui_Test_Prj1):
     def cntUpdated(self):
         self.lE_incnt.setText(str(UDPServer.input_cnt))
         self.lE_outcnt.setText(str(UDPServer.output_cnt))
+
+    def masterIP(self):
+        if self.chB_masterip.isChecked():
+            self.cB_ip_2.clear()
+            self.cB_ip_2.addItem('ALL')
+            self.cB_ip_2.addItems(ConfigFile.ParaInit['master_ip'])
+        else:
+            self.cB_ip_2.clear()
+            self.cB_ip_2.addItem('ALL')
+            self.cB_ip_2.addItems(UDPServer.Tx_IP_Addr)
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)

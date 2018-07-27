@@ -291,7 +291,7 @@
    <widget class="QPushButton" name="pB_send">
     <property name="geometry">
      <rect>
-      <x>90</x>
+      <x>100</x>
       <y>210</y>
       <width>71</width>
       <height>23</height>
@@ -299,6 +299,19 @@
     </property>
     <property name="text">
      <string>发送</string>
+    </property>
+   </widget>
+   <widget class="QCheckBox" name="chB_masterip">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>210</y>
+      <width>91</width>
+      <height>19</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>主基站</string>
     </property>
    </widget>
   </widget>
@@ -703,8 +716,8 @@
    <slot>udpSend()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>160</x>
-     <y>309</y>
+     <x>170</x>
+     <y>242</y>
     </hint>
     <hint type="destinationlabel">
      <x>161</x>
@@ -744,6 +757,22 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>chB_masterip</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>Test_Prj1</receiver>
+   <slot>masterIP()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>44</x>
+     <y>235</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>1</x>
+     <y>219</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>uwbBurn()</slot>
@@ -763,5 +792,6 @@
   <slot>udpSend()</slot>
   <slot>udpOrder()</slot>
   <slot>uwbAveTime()</slot>
+  <slot>masterIP()</slot>
  </slots>
 </ui>
