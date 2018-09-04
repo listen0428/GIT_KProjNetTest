@@ -52,6 +52,10 @@ class mywindow(QtWidgets.QWidget,Ui_Test_Prj1):
         self.tB_log_2.document().setMaximumBlockCount(1000)#设置文本最大长度
         self.cB_txmac.addItem('ALL')
         self.cB_ip_2.addItem('ALL')
+        self.cB_ip_3.addItem('ALL')
+        self.cB_ip_2.addItems(ConfigFile.ParaInit['station_ip_mac'].keys())
+        self.cB_ip_3.addItems(ConfigFile.ParaInit['station_ip_mac'].values())
+
         self.lE_avenum.setText(str(0))
         self.lE_avetime.setText(str(0.000))
         self.lE_avetime_2.setText(str(0.000))
@@ -180,7 +184,7 @@ class mywindow(QtWidgets.QWidget,Ui_Test_Prj1):
             self.udp_server_recv = UDPServer.UDPServer()
 
             t1 = threading.Thread(target=self.udp_server_recv.receive,
-                                      args=(self.addr_recv,self.pB_udpbegin,self.cB_ip,self.cB_ip_2,self.tB_log,self.tB_log_2,self.cB_txmac,))
+                                      args=(self.addr_recv,self.pB_udpbegin,self.cB_ip,self.cB_ip_2,self.tB_log,self.tB_log_2,self.cB_txmac,self.cB_ip_3,))
             t1.setDaemon(True)
             t1.start()
             self.cB_ip.setEnabled(False)
@@ -218,8 +222,21 @@ class mywindow(QtWidgets.QWidget,Ui_Test_Prj1):
                 logger.info('addItem')
                 self.cB_ip_2.addItem(self.client_address[0])
             db.conn.close()
-    def autoComp(self):
-        pass
+    def ipChange(self):
+        # pass
+        if self.cB_ip_2.currentText() == 'ALL':
+            self.cB_ip_3.setCurrentText('ALL')
+        else:
+            self.cB_ip_3.setCurrentText(ConfigFile.ParaInit['station_ip_mac'][self.cB_ip_2.currentText()])
+            self.lE_port_3.setText(ConfigFile.ParaInit['base_station'][self.cB_ip_3.currentText()][0]+str(ConfigFile.ParaInit['base_station'][self.cB_ip_3.currentText()][5]))
+
+    def macChange(self):
+        if self.cB_ip_3.currentText() == 'ALL':
+            self.cB_ip_2.setCurrentText('ALL')
+        else:
+            self.cB_ip_2.setCurrentText(ConfigFile.ParaInit['station_mac_ip'][self.cB_ip_3.currentText()])
+            logger.info(ConfigFile.ParaInit['base_station'][self.cB_ip_3.currentText()][0]+str(ConfigFile.ParaInit['base_station'][self.cB_ip_3.currentText()][5]))
+            self.lE_port_3.setText(ConfigFile.ParaInit['base_station'][self.cB_ip_3.currentText()][0]+str(ConfigFile.ParaInit['base_station'][self.cB_ip_3.currentText()][5]))
 
     def clearLog(self):
         self.tE_log.clear()

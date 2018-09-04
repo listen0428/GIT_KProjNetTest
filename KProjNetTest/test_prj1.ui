@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1259</width>
-    <height>663</height>
+    <width>1266</width>
+    <height>666</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -153,7 +153,7 @@
     <rect>
      <x>10</x>
      <y>10</y>
-     <width>191</width>
+     <width>221</width>
      <height>241</height>
     </rect>
    </property>
@@ -189,8 +189,8 @@
     <property name="geometry">
      <rect>
       <x>50</x>
-      <y>60</y>
-      <width>131</width>
+      <y>50</y>
+      <width>91</width>
       <height>20</height>
      </rect>
     </property>
@@ -202,7 +202,7 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>12</y>
+      <y>20</y>
       <width>21</width>
       <height>20</height>
      </rect>
@@ -215,7 +215,7 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>60</y>
+      <y>50</y>
       <width>31</width>
       <height>16</height>
      </rect>
@@ -228,7 +228,7 @@
     <property name="geometry">
      <rect>
       <x>100</x>
-      <y>90</y>
+      <y>120</y>
       <width>89</width>
       <height>16</height>
      </rect>
@@ -241,7 +241,7 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>90</y>
+      <y>120</y>
       <width>91</width>
       <height>16</height>
      </rect>
@@ -279,9 +279,9 @@
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>120</y>
+      <y>140</y>
       <width>151</width>
-      <height>51</height>
+      <height>31</height>
      </rect>
     </property>
     <property name="autoFormatting">
@@ -312,6 +312,47 @@
     </property>
     <property name="text">
      <string>主基站</string>
+    </property>
+   </widget>
+   <widget class="QComboBox" name="cB_ip_3">
+    <property name="enabled">
+     <bool>true</bool>
+    </property>
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>80</y>
+      <width>171</width>
+      <height>22</height>
+     </rect>
+    </property>
+    <property name="editable">
+     <bool>true</bool>
+    </property>
+    <property name="currentText">
+     <string/>
+    </property>
+    <property name="currentIndex">
+     <number>-1</number>
+    </property>
+    <property name="duplicatesEnabled">
+     <bool>false</bool>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="lE_port_3">
+    <property name="enabled">
+     <bool>false</bool>
+    </property>
+    <property name="geometry">
+     <rect>
+      <x>150</x>
+      <y>50</y>
+      <width>31</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>1</string>
     </property>
    </widget>
   </widget>
@@ -605,8 +646,8 @@
   <zorder>cB_txmac</zorder>
   <zorder>pB_udpbegin_2</zorder>
   <zorder>chB_allip</zorder>
-  <zorder>tB_log</zorder>
   <zorder>groupBox</zorder>
+  <zorder>tB_log</zorder>
  </widget>
  <tabstops>
   <tabstop>pB_exit</tabstop>
@@ -647,9 +688,9 @@
   </connection>
   <connection>
    <sender>cB_ip_2</sender>
-   <signal>editTextChanged(QString)</signal>
+   <signal>activated(QString)</signal>
    <receiver>Test_Prj1</receiver>
-   <slot>autoComp()</slot>
+   <slot>ipChange()</slot>
    <hints>
     <hint type="sourcelabel">
      <x>107</x>
@@ -658,22 +699,6 @@
     <hint type="destinationlabel">
      <x>110</x>
      <y>277</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>pB_udpbegin_2</sender>
-   <signal>clicked()</signal>
-   <receiver>Test_Prj1</receiver>
-   <slot>udpSet()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>129</x>
-     <y>112</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>141</x>
-     <y>290</y>
     </hint>
    </hints>
   </connection>
@@ -690,22 +715,6 @@
     <hint type="destinationlabel">
      <x>119</x>
      <y>133</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>tE_log</sender>
-   <signal>textChanged()</signal>
-   <receiver>Test_Prj1</receiver>
-   <slot>cntUpdated()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>358</x>
-     <y>264</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>345</x>
-     <y>312</y>
     </hint>
    </hints>
   </connection>
@@ -773,6 +782,54 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>pB_udpbegin_2</sender>
+   <signal>clicked()</signal>
+   <receiver>Test_Prj1</receiver>
+   <slot>udpSet()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>129</x>
+     <y>112</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>141</x>
+     <y>290</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>tE_log</sender>
+   <signal>textChanged()</signal>
+   <receiver>Test_Prj1</receiver>
+   <slot>cntUpdated()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>358</x>
+     <y>264</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>345</x>
+     <y>312</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>cB_ip_3</sender>
+   <signal>activated(QString)</signal>
+   <receiver>Test_Prj1</receiver>
+   <slot>macChange()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>26</x>
+     <y>111</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>249</x>
+     <y>6</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>uwbBurn()</slot>
@@ -784,7 +841,7 @@
   <slot>clearLog()</slot>
   <slot>sendString()</slot>
   <slot>sendByte()</slot>
-  <slot>autoComp()</slot>
+  <slot>ipChange()</slot>
   <slot>udpSet()</slot>
   <slot>bleIn()</slot>
   <slot>bleOut()</slot>
@@ -793,5 +850,6 @@
   <slot>udpOrder()</slot>
   <slot>uwbAveTime()</slot>
   <slot>masterIP()</slot>
+  <slot>macChange()</slot>
  </slots>
 </ui>

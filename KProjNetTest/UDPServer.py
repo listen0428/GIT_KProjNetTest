@@ -2,13 +2,15 @@
 __author__ = 'few'
 # 创建时间 2018/3/2 10:48 
 
-
+import ConfigFile
 import socket,pickle,struct,logging
 from Logger import logger
 import PySqlite
 import time,threading
 from queue import Queue,Full
 import DataAnalysis
+import BaseStation
+import math
 SendQuene = Queue(10000)
 DataTransmitQuene = Queue(1000)
 LoraDevice = ['Lora接收','Lora发送','PS发送','other']
@@ -214,8 +216,10 @@ class UDPServer():
         self.ave_time ={}
         self.var_time ={}
         self.ip_mac = {}
+        self.slaves = {}
+
         self.thread_lock = threading.Lock()
-    def receive(self,addr,pB_udpbegin,cB_ip,cB_ip_2,tB_log,tB_log_2,cB_txmac):
+    def receive(self,addr,pB_udpbegin,cB_ip,cB_ip_2,tB_log,tB_log_2,cB_txmac,cB_ip_3):
         logger.info(addr)
         server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         try:
@@ -237,24 +241,24 @@ class UDPServer():
         while True:
             if upd_en:
                 try:
-                    data,udp_addr = server.recvfrom(1024)
-                    logger.info(['data length: ',len(data),',data: ',''.join(["%02X"%(char) for char in data])])
+                    data,self.udp_addr = server.recvfrom(1024)
+                    # logger.info(['data length: ',len(data),',data: ',''.join(["%02X"%(char) for char in data])])
                 except socket.timeout :
                     logger.error(socket.timeout,exc_info=0)
                     # pass
                 else:
 
                     if data[0]==1:#表示接收到uwb数据
-                        self.uwbReceiver(data,cB_txmac,udp_addr)
+                        self.uwbReceiver(data,cB_txmac,cB_ip_3,self.udp_addr)
                     elif data[0]==2:#表示接收到ble数据
-                        logger.debug('ble')
+                        # logger.debug('ble')
                         self.bleReceiver(data,cB_txmac)
                     elif data[0]==0x10:#表示接收到lora-scale数据
                         self.tagDevice(data,0)
                     elif data[0]==0x80:#表示接收到lora-forklift数据
                         self.tagDevice(data,1)
                     elif data[0]==0xfa:#设备管理器
-                        self.deviceManager(data,udp_addr,cB_ip_2)
+                        self.deviceManager(data,self.udp_addr,cB_ip_2)
                     elif data[0]==0xaa:#节点蓝牙
                         self.tagBleReceiver(data,cB_txmac)
             else:
@@ -294,47 +298,53 @@ class UDPServer():
             content = ''.join([udp_addr[0],'：',''.join(["%02X"%(char) for char in data[0:len(data)]])])
             SendQuene.put_nowait([0,content])
 
-        global Tx_IP_Addr
-        if udp_addr[0] not in Tx_IP_Addr:#当接收到来自新ip的数据时，更新数据库和客户端ip列表
-            if self.thread_lock.acquire():
-                Tx_IP_Addr.append(udp_addr[0])
-                cB_ip_2.addItem(udp_addr[0])
-                db = PySqlite.DataBase('address_data.db')
-                db.addRow(udp_addr[0],udp_addr[1],'ADDRESS')
-                logger.info('addItem news ip')
-                db.conn.close()
-                self.thread_lock.release()
+        # global Tx_IP_Addr
+        # if udp_addr[0] not in Tx_IP_Addr:#当接收到来自新ip的数据时，更新数据库和客户端ip列表
+        #     if self.thread_lock.acquire():
+        #         Tx_IP_Addr.append(udp_addr[0])
+        #         cB_ip_2.addItem(udp_addr[0])
+        #         db = PySqlite.DataBase('address_data.db')
+        #         db.addRow(udp_addr[0],udp_addr[1],'ADDRESS')
+        #         logger.info('addItem news ip')
+        #         db.conn.close()
+        #         self.thread_lock.release()
 
     def bleReceiver(self,data,cB_txmac):
         unpack_data = struct.unpack(">BBHI",data[0:8])
         self.pack_ble_dict['Header']=unpack_data[0]
         self.pack_ble_dict['Site']=unpack_data[1]
         self.pack_ble_dict['PackNum']=unpack_data[2]
-        self.pack_ble_dict['BleSum']=unpack_data[3]
+        self.pack_ble_dict['Length']=unpack_data[3]
         self.pack_ble_dict['GWMAC']=''.join(["%02X"%(char) for char in data[8:16]])
         self.pack_ble_dict['End']=''.join(["%02X"%(char) for char in data[-2:]])
         # content = ''.join(str(self.pack_ble_dict.values()))
         # SendQuene.put_nowait([1,content])
         logger.info(self.pack_ble_dict)
-        if self.pack_ble_dict['PackNum']*10+20 == len(data) and self.pack_ble_dict['End']=='FFEE':
+        if self.pack_ble_dict['PackNum']*12+20 == len(data) and self.pack_ble_dict['End']=='FFEE':
             for i in range(unpack_data[2]):
-                ble_data = data[i*10+16:i*16+26]
+                ble_data = data[i*12+16:i*12+28]
                 bleAddr = ''.join(["%02X"%(char) for char in ble_data[0:7]])
-                data_dict ={
+                self.data_dict ={
+                        'GWMAC':''.join(["%02X"%(char) for char in data[8:16]]),
+                        'IP':self.udp_addr[0],
                         'bleAddr':bleAddr,
-                        'Active':ble_data[7]/2**6,
-                        'TagState':ble_data[7]/2**4%4,
+                        'Active':ble_data[7]/2**4,
+                        'TagState':ble_data[7]%2**4,
                         'Cause':ble_data[7]%16,
                         'Voltage': ble_data[8],
-                        'RSSI':ble_data[9]
+                        'RSSI':-ble_data[11]
                     }
-                logger.info(data_dict)
+                # logger.info(self.data_dict)
         else:
             logger.error(['ble包错误：',self.pack_ble_dict])
             content = ''.join(['cnt:',str(unpack_data[1]),',ble包错误!'])
             SendQuene.put_nowait([1,content])
 
-    def uwbReceiver(self,data,cB_txmac,udp_addr):
+        AREA=19
+        if (ConfigFile.ParaInit['base_station'][self.data_dict['GWMAC']][5]==AREA) and self.data_dict['bleAddr']=='A1A21F239034C0':
+            logger.info(self.data_dict)
+
+    def uwbReceiver(self,data,cB_txmac,cB_ip_3,udp_addr):
         self.pack_ble_dict['Header']=str(data[0])
         self.pack_ble_dict['PackNum']=data[1]
         self.pack_ble_dict['FPGACnt']=data[2]*256+data[3]
@@ -349,6 +359,22 @@ class UDPServer():
 
                 AddrT = ''.join(["%02X"%(char) for char in uwb_data[24:32]])
                 AddrR = ''.join(["%02X"%(char) for char in uwb_data[32:40]])
+
+                RXPACC = (uwb_data[40])
+                CIR_PWR = ((uwb_data[43])<<8)+(uwb_data[42])
+
+                FP_AMPL1 = ((uwb_data[33])<<8)+(uwb_data[32])
+                FP_AMPL2 = ((uwb_data[35])<<8)+(uwb_data[34])
+                FP_AMPL3 = ((uwb_data[37])<<8)+(uwb_data[36])
+                STD_NOISE = ((uwb_data[39])<<8)+(uwb_data[38])
+
+                try:
+                    ReceiverPower = 10*math.log10(CIR_PWR*2**17/RXPACC**2)-121.74 #first path power level
+                    FirstPathPower = 10*math.log10((FP_AMPL1*FP_AMPL1+FP_AMPL2*FP_AMPL2+FP_AMPL3*FP_AMPL3)/RXPACC**2)-121.74#receiver power level
+                except:
+                    ReceiverPower = 0
+                    FirstPathPower = 0
+
 
                 if udp_addr[0] not in self.ip_mac:
                     self.ip_mac[udp_addr[0]]=AddrR
@@ -369,6 +395,8 @@ class UDPServer():
                         'AddrA':AddrR,
                         'Time':int(time.time()*1000),
                         'IP':udp_addr
+                        # 'FirstPathPower':FirstPathPower,
+                        # 'ReceiverPower':ReceiverPower
                     }
                     # logger.debug(data_dict)
                     # self.testTimeStability('R-'+AddrR+',T-'+AddrT,data_dict['SN'],float(Tr)*self.DWT_TIME_UNITS)
@@ -381,41 +409,70 @@ class UDPServer():
                         'TimeTxM': float(Tt)*self.DWT_TIME_UNITS*256,
                         'AddrM': AddrT,
                         'AddrS': AddrR
+                        # 'FirstPathPower':FirstPathPower,
+                        # 'ReceiverPower':ReceiverPower
                     }
                     # if AddrR=="01AA2145CCF0CB1F":#分析定位包时间稳定性
                     # self.testTimeStability('R-'+AddrR+',T-'+AddrT,data_dict['SN'],float(Tr)*self.DWT_TIME_UNITS)
+                    if cB_txmac.currentText() == AddrT:
+                        if AddrT in self.slaves:
+                            if AddrR in self.slaves[AddrT]:
+                                self.slaves[AddrT][AddrR].updateTDC(data_dict['SN'], data_dict['TimeRxS'], data_dict['TimeTxM'], AddrT)
+                            else:
+                                self.slaves['01AA2145CCF0C7B4']['10205F1C10000545'] = BaseStation.Slave('10205F1C10000545', 0, 0, 0, 0, 0, 0)
+                        else:
+                            self.slaves['01AA2145CCF0C7B4'] = {}
 
-            # logger.debug(self.pack_ble_dict)
                 if cB_txmac.findText(AddrT)==-1:
                     cB_txmac.addItem(AddrT)
-                if cB_txmac.currentText()=='ALL' or cB_txmac.currentText() == AddrT:
+                if (cB_txmac.currentText()=='ALL' or cB_txmac.currentText() == AddrT) and (cB_ip_3.currentText()=='ALL' or cB_ip_3.currentText() == AddrR):
                     logger.debug(data_dict)
                     if self.cB_txmac_currentText!=cB_txmac.currentText():
                         self.TimeRx_dict = {}
                     self.cB_txmac_currentText = cB_txmac.currentText()
-                    self.testTimeStability(AddrT+'-'+AddrR,data_dict['SN'],float(Tr)*self.DWT_TIME_UNITS)
+                    self.testTimeStability(AddrT,data_dict['SN'],float(Tr)*self.DWT_TIME_UNITS,float(Tt)*self.DWT_TIME_UNITS*256,[FirstPathPower,ReceiverPower])
+                    logger.warning([RXPACC,CIR_PWR])
+                    logger.warning([FP_AMPL1,FP_AMPL2,FP_AMPL3,STD_NOISE])
 
-    def testTimeStability(self,flag,sn,rx_time):#分析包时间稳定性,计算导致的距离误差
+    def testTimeStability(self,flag,sn,rx_time,tx_time,power):#分析包时间稳定性,计算导致的距离误差
         # logger.debug(self.TimeRx_dict)
         try:
             if self.TimeRx_dict[flag]:
                 self.TimeRx_dict[flag][0][0:3] = self.TimeRx_dict[flag][0][1:3]+[sn]
                 self.TimeRx_dict[flag][1] = self.TimeRx_dict[flag][1][1:]+[rx_time]
+                self.TimeRx_dict[flag][2] = self.TimeRx_dict[flag][2][1:]+[tx_time]
                 # logger.debug(self.TimeRx_dict)
                 #距离精度
-                logger.warning([self.TimeRx_dict[flag][0][2],self.TimeRx_dict[flag][0][1]])
+                # logger.warning([self.TimeRx_dict[flag][0][2],self.TimeRx_dict[flag][0][1]])
                 delta_time = (self.TimeRx_dict[flag][1][2]-self.TimeRx_dict[flag][1][1])/(self.TimeRx_dict[flag][0][2]-self.TimeRx_dict[flag][0][1])
                 delta_time= delta_time+self.CLOCK_OVERFLOW if delta_time<-10 else delta_time
-                error_time = (delta_time-self.delta_time_last[flag])*self.Velocity_Light
+                error_time = (delta_time-self.delta_time_last[flag][0])*self.Velocity_Light
+                error_time150ms = (delta_time-0.15)*self.Velocity_Light
                 if abs(delta_time)>2 or abs(error_time)>10000:
-                    self.delta_time_last[flag] = delta_time
+                    self.delta_time_last[flag][0] = delta_time
                     return
 
-                logger.info([flag,'时间s:',rx_time,'时间差s:',delta_time,'距离精度m:',round(error_time,2)])
-                content = ''.join([flag,',距离精度m: ',str(round(error_time,2))])
+                logger.info([flag,'时间s:',rx_time,'时间差s:',delta_time,'rx距离精度m:',round(error_time,2),'FirstPathPower:',round(power[0],2),'ReceiverPower:',round(power[1],2)])
+                content = ''.join([flag,',距离精度m: ',str(round(error_time,2)),', rx距离精度(150)m:',str(round(error_time150ms,2))])
                 SendQuene.put_nowait([0,content])
-                # tB_log.append(content)
-                self.delta_time_last[flag] = delta_time
+                self.delta_time_last[flag][0] = delta_time
+
+                delta_time = (self.TimeRx_dict[flag][2][2]-self.TimeRx_dict[flag][2][1])/(self.TimeRx_dict[flag][0][2]-self.TimeRx_dict[flag][0][1])
+                delta_time= delta_time+self.CLOCK_OVERFLOW if delta_time<-10 else delta_time
+                error_time = (delta_time-self.delta_time_last[flag][1])*self.Velocity_Light
+                error_time150ms = (delta_time-0.15)*self.Velocity_Light
+                if abs(delta_time)>2 or abs(error_time)>10000:
+                    self.delta_time_last[flag][1] = delta_time
+                    return
+
+                logger.info([flag,'时间s:',rx_time,'时间差s:',delta_time,'tx距离精度m:',round(error_time,2),'FirstPathPower:',round(power[0],2),'ReceiverPower:',round(power[1],2)])
+                content = ''.join([flag,',距离精度m: ',str(round(error_time,2)),', tx距离精度(150)m:',str(round(error_time150ms,2))])
+                SendQuene.put_nowait([0,content])
+
+                # content = ''.join([flag,',FirstPathPower:',str(round(power[0],2)),', ReceiverPower:',str(round(power[1],2))])
+                # SendQuene.put_nowait([0,content])
+
+                self.delta_time_last[flag][1] = delta_time
 
                 # self.average_data[flag].averageData(error_time,1)
                 if delta_time<1 and ControlOrder[0]==1:
@@ -447,9 +504,10 @@ class UDPServer():
 
         except (KeyError,Full) as Err:
             logger.error(Err,exc_info=False)
-            self.delta_time_last[flag] = 0
+            self.delta_time_last[flag] = [0,0]
             self.TimeRx_dict[flag] = []
             self.TimeRx_dict[flag].append([1,2,sn,0,sn])
+            self.TimeRx_dict[flag].append([1,2,3])
             self.TimeRx_dict[flag].append([1,2,3])
             logger.debug(self.TimeRx_dict)
             self.test_loss_package[flag] = TestLossPackage(sn)
